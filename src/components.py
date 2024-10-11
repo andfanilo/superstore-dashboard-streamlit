@@ -3,7 +3,6 @@ from typing import Literal
 
 import plotly.express as px
 import streamlit as st
-from sqlalchemy import case
 from sqlalchemy import func
 from sqlalchemy import select
 
@@ -96,6 +95,10 @@ def plot_sales_detail(selected_day, selected_period):
             "category": ALL_CATEGORIES,
         },
         title=f"Last {selected_period} Days Sales",
+        labels={
+            "month_year": "Month of Year",
+            "number_of_sales": "Number of Sales"
+        }
     )
     return st.plotly_chart(
         fig,
@@ -129,46 +132,15 @@ def plot_fm_scatter(selected_day, selected_period):
             "category": ALL_CATEGORIES,
         },
         title=f"FM Matrix per sub category",
+        labels={
+            "number_orders": "Number or Orders",
+            "mean_profit_per_order": "Mean Profit Per Order"
+        }
     ).update_traces(textposition="bottom center", marker=dict(size=14))
     return st.plotly_chart(
         fig,
         use_container_width=True,
     )
-
-
-def plot_top_products(selected_day, selected_period, selected_sub_category):
-    data = query_df(
-        select(
-            Superstore.product_name,
-            func.sum(Superstore.profit).label("total_profit"),
-            case((func.sum(Superstore.profit) > 0, "green"), else_="red").label(
-                "color"
-            ),
-        )
-        .where(
-            (
-                Superstore.order_date.between(
-                    selected_day - timedelta(days=selected_period), selected_day
-                )
-            )
-            & (Superstore.sub_category == selected_sub_category)
-        )
-        .group_by(Superstore.product_name)
-        .order_by("total_profit")
-    )
-    if data.empty:
-        return st.warning("No top products in this period")
-    else:
-        fig = px.bar(
-            data,
-            x="total_profit",
-            y="product_name",
-            color="color",
-            color_discrete_map={"green": "green", "red": "red"},
-            orientation="h",
-        ).update_layout(showlegend=False, height=500)
-
-        return st.plotly_chart(fig)
 
 
 def preview_orders(selected_day, selected_period):

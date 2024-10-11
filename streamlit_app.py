@@ -2,15 +2,11 @@ from datetime import timedelta
 
 import streamlit as st
 from sqlalchemy import func
-from sqlalchemy import select
 
 from src.components import plot_fm_scatter
 from src.components import plot_sales_detail
 from src.components import plot_sparkline
-from src.components import plot_top_products
 from src.components import preview_orders
-from src.constants import ALL_CATEGORIES
-from src.dataset import query_df
 from src.dataset import query_scalar
 from src.dataset import Superstore
 from src.features import compute_delta
@@ -68,7 +64,10 @@ profit_ratio_previous_period = 100 * profit_previous_period / sales_previous_per
 
 ### Build Row
 
-cards_row = st.columns(4)
+cards_row = st.container(key="cards_row")
+
+with cards_row:
+    cards_columns = st.columns(4)
 
 for (label, value, previous_value, query, aggregate_func, format_str), column in zip(
     [
@@ -105,7 +104,7 @@ for (label, value, previous_value, query, aggregate_func, format_str), column in
             lambda value: f"{value:,.2f}".replace(",", " "),
         ),
     ],
-    cards_row,
+    cards_columns,
 ):
     with column.container(border=True):
         card = st.columns((1, 1), vertical_alignment="bottom")
@@ -133,28 +132,28 @@ with chart_row[1]:
 
 
 ################################################
-### Row 4 - Top Products
-################################################
-
-st.subheader("Top Products per sub-category")
-
-filter_row = st.columns((1, 1, 2), gap="large")
-selected_category = filter_row[0].selectbox("Select Category", ALL_CATEGORIES)
-selected_sub_category = filter_row[1].selectbox(
-    "Select Sub Category",
-    query_df(
-        select(Superstore.sub_category)
-        .where(Superstore.category == selected_category)
-        .distinct()
-    ),
-)
-
-plot_top_products(selected_day, selected_period, selected_sub_category)
-
-################################################
-### Row 5 - Order details
+### Row 4 - Order details
 ################################################
 
 with st.container(border=True):
     st.markdown("Order Details")
     preview_orders(selected_day, selected_period)
+
+
+################################################
+### Styling
+################################################
+
+st.html("""<style>
+    .st-key-cards_row > .stHorizontalBlock > .stColumn {
+        box-shadow: 2px 2px rgba(23, 76, 79, 0.2);
+        border-radius: 12px;
+    }
+    .st-key-cards_row div[data-testid="stMetricValue"] {
+        font-size: 1.4em;
+        font-weight: 700;
+        color: #174C4F;
+        padding-top: 0.2rem;
+        padding-bottom: 0.7rem;
+    }
+</style>""")
