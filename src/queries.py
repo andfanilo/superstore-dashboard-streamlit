@@ -104,32 +104,6 @@ def compute_delta(metric, metric_previous_period):
 
 
 @st.cache_data(ttl=timedelta(minutes=5))
-def get_sales_detail(
-    _st_connection: SQLConnection,
-    selected_day,
-    selected_period,
-):
-    with _st_connection.connect() as sql_connection:
-        df = pd.read_sql_query(
-            select(
-                Superstore.category,
-                Superstore.order_date.label("month_year"),
-                func.count(Superstore.order_id).label("number_of_sales"),
-            )
-            .where(
-                Superstore.order_date.between(
-                    selected_day - timedelta(days=selected_period), selected_day
-                )
-            )
-            .group_by(Superstore.order_date, Superstore.category)
-            .order_by(Superstore.order_date),
-            sql_connection,
-        )
-
-    return df
-
-
-@st.cache_data(ttl=timedelta(minutes=5))
 def get_fm_scatter(
     _st_connection: SQLConnection,
     selected_day,
@@ -149,6 +123,32 @@ def get_fm_scatter(
                 )
             )
             .group_by(Superstore.category, Superstore.sub_category),
+            sql_connection,
+        )
+
+    return df
+
+
+@st.cache_data(ttl=timedelta(minutes=5))
+def get_sales_per_subcategory(
+    _st_connection: SQLConnection,
+    selected_day,
+    selected_period,
+):
+    with _st_connection.connect() as sql_connection:
+        df = pd.read_sql_query(
+            select(
+                Superstore.category,
+                Superstore.order_date.label("month_year"),
+                func.count(Superstore.order_id).label("number_of_orders"),
+            )
+            .where(
+                Superstore.order_date.between(
+                    selected_day - timedelta(days=selected_period), selected_day
+                )
+            )
+            .group_by(Superstore.order_date, Superstore.category)
+            .order_by(Superstore.order_date),
             sql_connection,
         )
 

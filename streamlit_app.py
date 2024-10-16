@@ -5,25 +5,25 @@ from sqlalchemy import func
 
 from src.models import Superstore
 from src.plots import plot_fm_scatter
-from src.plots import plot_sales_detail
+from src.plots import plot_sales_per_subcategory
 from src.plots import plot_sparkline
 from src.queries import aggregate_per_column
 from src.queries import compute_delta
 from src.queries import detail_per_column
 from src.queries import get_fm_scatter
 from src.queries import get_order_details
-from src.queries import get_sales_detail
+from src.queries import get_sales_per_subcategory
 
-st.set_page_config(page_icon="📈", page_title="Sales Dashboard", layout="wide")
+st.set_page_config(page_icon="📈", page_title="Superstore Dashboard", layout="wide")
 
 # Parameters defined in .streamlit/secrets.toml
-conn = st.connection(
+pg_connection = st.connection(
     "local_postgres",
     type="sql",
 )
 
 
-st.title("Superstore Analytics")
+st.title("Superstore Dashboard")
 
 
 ################################################
@@ -80,7 +80,7 @@ profit_ratio_previous_period = 100 * profit_previous_period / sales_previous_per
 
 ### Build Row
 
-st.subheader("Overview")
+st.subheader("Overview", anchor=False)
 
 cards_row = st.container(key="cards_row")
 
@@ -131,7 +131,7 @@ for (label, value, previous_value, query, aggregate_func, format_str), column in
             st.metric(
                 label=label,
                 value=format_str(value) if isinstance(value, float) else value,
-                delta=f"{compute_delta(value, previous_value):.2f} %",
+                delta=f"{compute_delta(value, previous_value):.2f} % to prev. period",
             )
         with card[1]:
             data = detail_per_column(
@@ -152,27 +152,36 @@ for (label, value, previous_value, query, aggregate_func, format_str), column in
 
 ## Precompute data
 
-data_sales_detail = get_sales_detail(pg_connection, selected_day, selected_period)
 data_fm_scatter = get_fm_scatter(pg_connection, selected_day, selected_period)
+data_sales_per_subcategory = get_sales_per_subcategory(
+    pg_connection, selected_day, selected_period
+)
 
 ### Build Row
 
-chart_row = st.columns(2)
+st.write("\n")
+st.subheader(
+    "Category Analysis",
+    anchor=False,
+)
+
+chart_row = st.columns((1.25, 1), gap="large")
 
 with chart_row[0]:
-    fig_sales_detail = plot_sales_detail(data_sales_detail)
-    st.plotly_chart(
-        fig_sales_detail,
-        use_container_width=True,
-        key="sales_detail",
-    )
-
-with chart_row[1]:
     fig_fm_scatter = plot_fm_scatter(data_fm_scatter)
     st.plotly_chart(
         fig_fm_scatter,
         use_container_width=True,
         key="fm_scatter",
+    )
+
+
+with chart_row[1]:
+    fig_sales_detail = plot_sales_per_subcategory(data_sales_per_subcategory)
+    st.plotly_chart(
+        fig_sales_detail,
+        use_container_width=True,
+        key="sales_subcat",
     )
 
 
@@ -186,13 +195,15 @@ data_orders = get_order_details(pg_connection, selected_day, selected_period)
 
 ### Build Row
 
-with st.container(border=True):
-    st.markdown("Order Details")
-    st.dataframe(
-        data_orders,
-        hide_index=True,
-        key="order_details",
-    )
+st.write("\n")
+st.subheader("Order Details", anchor=False)
+
+st.dataframe(
+    data_orders,
+    hide_index=True,
+    use_container_width=True,
+    key="order_details",
+)
 
 
 ################################################

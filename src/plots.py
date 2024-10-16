@@ -27,21 +27,6 @@ def plot_sparkline(data):
     return fig
 
 
-def plot_sales_detail(data):
-    fig = px.line(
-        data,
-        x="month_year",
-        y="number_of_sales",
-        color="category",
-        category_orders={
-            "category": ALL_CATEGORIES,
-        },
-        title=f"Sales per selected period",
-        labels={"month_year": "Month of Year", "number_of_sales": "Number of Sales"},
-    )
-    return fig
-
-
 def plot_fm_scatter(data):
     fig = px.scatter(
         data,
@@ -53,10 +38,48 @@ def plot_fm_scatter(data):
         category_orders={
             "category": ALL_CATEGORIES,
         },
-        title=f"FM Matrix per sub category",
         labels={
-            "number_orders": "Number or Orders",
+            "number_orders": "Number of Orders",
             "mean_profit_per_order": "Mean Profit Per Order",
+            "category": "Product Category",
         },
-    ).update_traces(textposition="bottom center", marker=dict(size=14))
+    )
+    fig.update_traces(textposition="bottom center", marker=dict(size=14))
+    fig.update_xaxes(showgrid=True)
+    fig.update_layout(
+        legend=dict(
+            orientation="h",
+            xanchor="right",
+            x=0.95,
+            yanchor="top",
+            y=1.05,
+        )
+    )
+    return fig
+
+
+def plot_sales_per_subcategory(data):
+    fig = px.line(
+        data,
+        x="month_year",
+        y="number_of_orders",
+        color="category",
+        category_orders={
+            "category": ALL_CATEGORIES,
+        },
+        labels={
+            "month_year": "",
+            "number_of_orders": "Number of Orders",
+        },
+    )
+    fig.update_xaxes()
+    fig.update_layout(
+        legend=dict(
+            orientation="h",
+            xanchor="right",
+            x=1,
+            yanchor="top",
+            y=1.05,
+        )
+    )
     return fig
