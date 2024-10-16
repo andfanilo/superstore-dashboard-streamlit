@@ -6,14 +6,17 @@ from sqlalchemy import func
 from src.components import plot_fm_scatter
 from src.components import plot_sales_detail
 from src.components import plot_sparkline
-from src.components import preview_orders
-from src.dataset import query_scalar
+from src.dataset import load_db
 from src.dataset import Superstore
-from src.features import compute_delta
-from src.features import count_aggregate_per_column
-
+from src.queries import aggregate_per_column
+from src.queries import compute_delta
+from src.queries import detail_per_column
+from src.queries import get_fm_scatter
+from src.queries import get_order_details
+from src.queries import get_sales_detail
 
 st.set_page_config(page_icon="📈", page_title="Sales Dashboard", layout="wide")
+pg_connection = load_db()
 
 
 st.title("Superstore Analytics")
@@ -23,9 +26,15 @@ st.title("Superstore Analytics")
 ### Row 1 - Configuration
 ################################################
 
+## Precompute data
+
+with pg_connection.session as session:
+    min_date = session.scalar(func.min(Superstore.order_date))
+    max_date = session.scalar(func.max(Superstore.order_date))
+
+### Build Row
+
 with st.expander("**Configuration**", icon="⚙"):
-    min_date = query_scalar(func.min(Superstore.order_date))
-    max_date = query_scalar(func.max(Superstore.order_date))
     configuration_row = st.columns(
         [1, 1, 0.5, 1.5], gap="large", vertical_alignment="bottom"
     )
@@ -39,30 +48,35 @@ with st.expander("**Configuration**", icon="⚙"):
         f"Period: {selected_day - timedelta(days=selected_period)} -> {selected_day}"
     )
 
+
 ################################################
 ### Row 2 - Row Card KPIs
 ################################################
 
-### Precompute KPIs
+## Precompute data
 
-st.subheader("Overview")
-
-n_orders, n_orders_previous_period = count_aggregate_per_column(
-    Superstore.order_id, "count_distinct", selected_day, selected_period
+n_orders, n_orders_previous_period = aggregate_per_column(
+    pg_connection, Superstore.order_id, "count_distinct", selected_day, selected_period
 )
-n_customers, n_customers_previous_period = count_aggregate_per_column(
-    Superstore.customer_id, "count_distinct", selected_day, selected_period
+n_customers, n_customers_previous_period = aggregate_per_column(
+    pg_connection,
+    Superstore.customer_id,
+    "count_distinct",
+    selected_day,
+    selected_period,
 )
-sales, sales_previous_period = count_aggregate_per_column(
-    Superstore.sales, "sum", selected_day, selected_period
+sales, sales_previous_period = aggregate_per_column(
+    pg_connection, Superstore.sales, "sum", selected_day, selected_period
 )
-profit, profit_previous_period = count_aggregate_per_column(
-    Superstore.profit, "sum", selected_day, selected_period
+profit, profit_previous_period = aggregate_per_column(
+    pg_connection, Superstore.profit, "sum", selected_day, selected_period
 )
 profit_ratio = 100 * profit / sales
 profit_ratio_previous_period = 100 * profit_previous_period / sales_previous_period
 
 ### Build Row
+
+st.subheader("Overview")
 
 cards_row = st.container(key="cards_row")
 
@@ -115,29 +129,48 @@ for (label, value, previous_value, query, aggregate_func, format_str), column in
                 delta=f"{compute_delta(value, previous_value):.2f} %",
             )
         with card[1]:
-            plot_sparkline(query, aggregate_func, selected_day, selected_period)
+            data = detail_per_column(
+                pg_connection, query, aggregate_func, selected_day, selected_period
+            )
+            plot_sparkline(data)
 
 
 ################################################
 ### Row 3 - Period detail
 ################################################
 
+## Precompute data
+
+data_sales_detail = get_sales_detail(pg_connection, selected_day, selected_period)
+data_fm_scatter = get_fm_scatter(pg_connection, selected_day, selected_period)
+
+### Build Row
+
 chart_row = st.columns(2)
 
 with chart_row[0]:
-    plot_sales_detail(selected_day, selected_period)
+    plot_sales_detail(data_sales_detail)
 
 with chart_row[1]:
-    plot_fm_scatter(selected_day, selected_period)
+    plot_fm_scatter(data_fm_scatter)
 
 
 ################################################
 ### Row 4 - Order details
 ################################################
 
+## Precompute data
+
+data_orders = get_order_details(pg_connection, selected_day, selected_period)
+
+### Build Row
+
 with st.container(border=True):
     st.markdown("Order Details")
-    preview_orders(selected_day, selected_period)
+    st.dataframe(
+        data_orders,
+        hide_index=True,
+    )
 
 
 ################################################

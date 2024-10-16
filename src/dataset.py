@@ -1,13 +1,11 @@
-import pandas as pd
 import streamlit as st
 from sqlalchemy import Column
-from sqlalchemy import create_engine
 from sqlalchemy import DateTime
 from sqlalchemy import Float
 from sqlalchemy import Integer
 from sqlalchemy import String
 from sqlalchemy.orm import DeclarativeBase
-from sqlalchemy.orm import Session
+from streamlit.connections import SQLConnection
 
 
 class Base(DeclarativeBase):
@@ -43,20 +41,10 @@ class Superstore(Base):
         return f"<Order(order_id={self.order_id}, customer_name={self.customer_name}, product_name={self.product_name})>"
 
 
-@st.cache_resource
-def load_db():
-    engine = create_engine(
-        "postgresql+psycopg2://postgres:postgres@localhost:5432/postgres"
+def load_db() -> SQLConnection:
+    # Parameters defined in .streamlit/secrets.toml
+    conn = st.connection(
+        "local_postgres",
+        type="sql",
     )
-    return engine
-
-
-def query_df(statement):
-    engine = load_db()
-    return pd.read_sql_query(statement, engine)
-
-
-def query_scalar(statement):
-    engine = load_db()
-    with Session(engine) as session:
-        return session.scalar(statement)
+    return conn
