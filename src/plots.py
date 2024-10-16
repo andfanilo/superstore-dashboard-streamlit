@@ -1,5 +1,4 @@
 import plotly.express as px
-import streamlit as st
 
 from src.constants import ALL_CATEGORIES
 
@@ -9,7 +8,7 @@ def plot_sparkline(data):
         data,
         x="order_date",
         y="value",
-        color_discrete_sequence=['#174C4F'],
+        color_discrete_sequence=["#174C4F"],
     )
     fig.update_traces(line=dict(width=1.2))
     fig.update_xaxes(visible=False, fixedrange=True, showgrid=False)
@@ -25,12 +24,7 @@ def plot_sparkline(data):
         autosize=True,
         margin=dict(t=30, l=0, b=0, r=10),
     )
-
-    return st.plotly_chart(
-        fig,
-        use_container_width=True,
-        config=dict(displayModeBar=False),
-    )
+    return fig
 
 
 def plot_sales_detail(data):
@@ -45,11 +39,7 @@ def plot_sales_detail(data):
         title=f"Sales per selected period",
         labels={"month_year": "Month of Year", "number_of_sales": "Number of Sales"},
     )
-
-    return st.plotly_chart(
-        fig,
-        use_container_width=True,
-    )
+    return fig
 
 
 def plot_fm_scatter(data):
@@ -69,8 +59,4 @@ def plot_fm_scatter(data):
             "mean_profit_per_order": "Mean Profit Per Order",
         },
     ).update_traces(textposition="bottom center", marker=dict(size=14))
-
-    return st.plotly_chart(
-        fig,
-        use_container_width=True,
-    )
+    return fig

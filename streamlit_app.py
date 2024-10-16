@@ -3,11 +3,11 @@ from datetime import timedelta
 import streamlit as st
 from sqlalchemy import func
 
-from src.components import plot_fm_scatter
-from src.components import plot_sales_detail
-from src.components import plot_sparkline
 from src.dataset import load_db
 from src.dataset import Superstore
+from src.plots import plot_fm_scatter
+from src.plots import plot_sales_detail
+from src.plots import plot_sparkline
 from src.queries import aggregate_per_column
 from src.queries import compute_delta
 from src.queries import detail_per_column
@@ -122,6 +122,7 @@ for (label, value, previous_value, query, aggregate_func, format_str), column in
 ):
     with column.container(border=True):
         card = st.columns((1, 1), vertical_alignment="bottom")
+
         with card[0]:
             st.metric(
                 label=label,
@@ -132,7 +133,13 @@ for (label, value, previous_value, query, aggregate_func, format_str), column in
             data = detail_per_column(
                 pg_connection, query, aggregate_func, selected_day, selected_period
             )
-            plot_sparkline(data)
+            fig = plot_sparkline(data)
+            st.plotly_chart(
+                fig,
+                use_container_width=True,
+                config=dict(displayModeBar=False),
+                key=f"sparkline_{label}",
+            )
 
 
 ################################################
@@ -149,10 +156,20 @@ data_fm_scatter = get_fm_scatter(pg_connection, selected_day, selected_period)
 chart_row = st.columns(2)
 
 with chart_row[0]:
-    plot_sales_detail(data_sales_detail)
+    fig_sales_detail = plot_sales_detail(data_sales_detail)
+    st.plotly_chart(
+        fig_sales_detail,
+        use_container_width=True,
+        key="sales_detail",
+    )
 
 with chart_row[1]:
-    plot_fm_scatter(data_fm_scatter)
+    fig_fm_scatter = plot_fm_scatter(data_fm_scatter)
+    st.plotly_chart(
+        fig_fm_scatter,
+        use_container_width=True,
+        key="fm_scatter",
+    )
 
 
 ################################################
@@ -170,6 +187,7 @@ with st.container(border=True):
     st.dataframe(
         data_orders,
         hide_index=True,
+        key="order_details",
     )
 
 

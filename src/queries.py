@@ -2,6 +2,7 @@ from datetime import timedelta
 from typing import Literal
 
 import pandas as pd
+import streamlit as st
 from sqlalchemy import func
 from sqlalchemy import select
 from streamlit.connections import SQLConnection
@@ -9,8 +10,14 @@ from streamlit.connections import SQLConnection
 from src.dataset import Superstore
 
 
+@st.cache_data(
+    ttl=timedelta(minutes=5),
+    hash_funcs={
+        "sqlalchemy.orm.attributes.InstrumentedAttribute": str,
+    },
+)
 def aggregate_per_column(
-    st_connection: SQLConnection,
+    _st_connection: SQLConnection,
     column_stmt,
     aggregate_func: Literal["sum", "count_distinct", "avg"],
     selected_day,
@@ -23,7 +30,7 @@ def aggregate_per_column(
         case "count_distinct":
             stmt = select(func.count(func.distinct(column_stmt)))
 
-    with st_connection.session as session:
+    with _st_connection.session as session:
         result_period = session.scalar(
             stmt.where(
                 Superstore.order_date.between(
@@ -43,8 +50,15 @@ def aggregate_per_column(
     return result_period, result_last_period
 
 
+@st.cache_data(
+    ttl=timedelta(minutes=5),
+    hash_funcs={
+        "sqlalchemy.orm.attributes.InstrumentedAttribute": str,
+        "sqlalchemy.sql.elements.BinaryExpression": lambda _: None,
+    },
+)
 def detail_per_column(
-    st_connection: SQLConnection,
+    _st_connection: SQLConnection,
     column_stmt,
     aggregate_func: Literal["sum", "count_distinct", "avg"],
     selected_day,
@@ -68,7 +82,7 @@ def detail_per_column(
                 func.avg(column_stmt).label("value"),
             )
 
-    with st_connection.connect() as sql_connection:
+    with _st_connection.connect() as sql_connection:
         df = pd.read_sql_query(
             stmt.where(
                 Superstore.order_date.between(
@@ -84,16 +98,18 @@ def detail_per_column(
     return df
 
 
+@st.cache_data(ttl=timedelta(minutes=5))
 def compute_delta(metric, metric_previous_period):
     return 100 * (metric - metric_previous_period) / metric
 
 
+@st.cache_data(ttl=timedelta(minutes=5))
 def get_sales_detail(
-    st_connection: SQLConnection,
+    _st_connection: SQLConnection,
     selected_day,
     selected_period,
 ):
-    with st_connection.connect() as sql_connection:
+    with _st_connection.connect() as sql_connection:
         df = pd.read_sql_query(
             select(
                 Superstore.category,
@@ -113,12 +129,13 @@ def get_sales_detail(
     return df
 
 
+@st.cache_data(ttl=timedelta(minutes=5))
 def get_fm_scatter(
-    st_connection: SQLConnection,
+    _st_connection: SQLConnection,
     selected_day,
     selected_period,
 ):
-    with st_connection.connect() as sql_connection:
+    with _st_connection.connect() as sql_connection:
         df = pd.read_sql_query(
             select(
                 func.count().label("number_orders"),
@@ -138,12 +155,13 @@ def get_fm_scatter(
     return df
 
 
+@st.cache_data(ttl=timedelta(minutes=5))
 def get_order_details(
-    st_connection: SQLConnection,
+    _st_connection: SQLConnection,
     selected_day,
     selected_period,
 ):
-    with st_connection.connect() as sql_connection:
+    with _st_connection.connect() as sql_connection:
         df = pd.read_sql_query(
             select(Superstore).where(
                 Superstore.order_date.between(
