@@ -3,8 +3,7 @@ from datetime import timedelta
 import streamlit as st
 from sqlalchemy import func
 
-from src.dataset import load_db
-from src.dataset import Superstore
+from src.models import Superstore
 from src.plots import plot_fm_scatter
 from src.plots import plot_sales_detail
 from src.plots import plot_sparkline
@@ -16,7 +15,12 @@ from src.queries import get_order_details
 from src.queries import get_sales_detail
 
 st.set_page_config(page_icon="📈", page_title="Sales Dashboard", layout="wide")
-pg_connection = load_db()
+
+# Parameters defined in .streamlit/secrets.toml
+conn = st.connection(
+    "local_postgres",
+    type="sql",
+)
 
 
 st.title("Superstore Analytics")

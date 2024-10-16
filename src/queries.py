@@ -7,7 +7,7 @@ from sqlalchemy import func
 from sqlalchemy import select
 from streamlit.connections import SQLConnection
 
-from src.dataset import Superstore
+from src.models import Superstore
 
 
 @st.cache_data(

@@ -1,11 +1,9 @@
-import streamlit as st
 from sqlalchemy import Column
 from sqlalchemy import DateTime
 from sqlalchemy import Float
 from sqlalchemy import Integer
 from sqlalchemy import String
 from sqlalchemy.orm import DeclarativeBase
-from streamlit.connections import SQLConnection
 
 
 class Base(DeclarativeBase):
@@ -39,12 +37,3 @@ class Superstore(Base):
 
     def __repr__(self):
         return f"<Order(order_id={self.order_id}, customer_name={self.customer_name}, product_name={self.product_name})>"
-
-
-def load_db() -> SQLConnection:
-    # Parameters defined in .streamlit/secrets.toml
-    conn = st.connection(
-        "local_postgres",
-        type="sql",
-    )
-    return conn
